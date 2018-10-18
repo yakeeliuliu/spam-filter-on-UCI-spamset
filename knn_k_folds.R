@@ -41,6 +41,8 @@ for (q in 1:10)
   
   class <- knn(trainingData = trainingData,testingData = testingData, k=3)
   confusion_matrix <- confuma(trainingData = trainingData,testingData = testingData,class = class)
+  rownames(confusion_matrix) <- c("actual_non_spam","actual_spam")
+  colnames(confusion_matrix) <- c("predicted_non_spam","predicted_spam")
   result_list[[q]] <- get_result(confusion_matrix = confusion_matrix)
   confusion_matrix_final <- rbind(confusion_matrix_final, confusion_matrix)
   print(confusion_matrix)
