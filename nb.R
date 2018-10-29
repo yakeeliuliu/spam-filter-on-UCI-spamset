@@ -1,4 +1,3 @@
-NUM_FOLDS <- 10
 
 set.seed(1)       # Set a seed so that results are reproducible
 #------------------------data split-----------------------------------------------#
@@ -36,7 +35,7 @@ mean_sd_matrix[, 1] <- means[2, (2:num_col)]
 mean_sd_matrix[, 2] <- means[1, (2:num_col)]
 mean_sd_matrix[, 3] <- standard_devs[2, (2:num_col)]
 mean_sd_matrix[, 4] <- standard_devs[1, (2:num_col)]
-
+colnames(mean_sd_matrix) <- c("1","0","1","0")
 # So as to not mess up future calculations, if there are any features
 # with 0.0 for their means and/or standard deviations, replace those values
 # with 0.0001.
@@ -57,9 +56,9 @@ mean_sd_matrix[mean_sd_matrix == 0.0] <- 0.0001
 num_samples <- nrow(testingData)
 num_cols <- ncol(testingData)
 
-# Stores the results of the probability density function (PDF) on each feature for each sample, given that the sample is spam/not spam
+# Stores the results of the probability density function (PDF) P(X|Ci) on each feature for each sample, given that the sample is spam/not spam
 conditional_spam <- matrix(0, nrow = num_samples, ncol = (num_cols - 1))#pad with 0
-conditional_non_spam <- matrix(0, nrow = num_samples, ncol = (num_cols - 1))
+conditional_not_spam <- matrix(0, nrow = num_samples, ncol = (num_cols - 1))
 probability_matrix <- matrix(0, nrow = num_samples, ncol = 2)
 # Calculate the probability density function (PDF) likehood [Gaussian Function] for each feature of each sample in dataset.
 for (i in 1:num_samples)
@@ -68,34 +67,35 @@ for (i in 1:num_samples)
   {
     feature <- testingData[i, j]
     spam_mu <- mean_sd_matrix[j, 1]
-    non_spam_mu <- mean_sd_matrix[j, 2]
+    not_spam_mu <- mean_sd_matrix[j, 2]
     spam_sigma <- mean_sd_matrix[j, 3]
-    non_spam_sigma <- mean_sd_matrix[j, 4]
+    not_spam_sigma <- mean_sd_matrix[j, 4]
     
     conditional_spam[i,j] <- (1/(sqrt(2*pi)*spam_sigma)) * exp(-(((feature - spam_mu)^2)/(2 * spam_sigma^2)))
-    conditional_non_spam[i,j] <- (1/(sqrt(2*pi)*non_spam_sigma)) * exp(-(((feature - non_spam_mu)^2)/(2 * non_spam_sigma^2)))
+    conditional_not_spam[i,j] <- (1/(sqrt(2*pi)*not_spam_sigma)) * exp(-(((feature - not_spam_mu)^2)/(2 * not_spam_sigma^2)))
   }
 }
 
-# Convert every PDF result to its log in order to add the values of each feature rather than multiply.
+# Convert every PDF P(X|Ci) result to its log in order to add the values of each feature rather than multiply.
 # This will help avoid buffer overflow.
 conditional_spam <- log10(conditional_spam)
-conditional_non_spam <- log10(conditional_non_spam)
+conditional_not_spam <- log10(conditional_not_spam)
 # Sum the PDF results for each sample and store sum in probability_matrix
 
-colnames(probability_matrix)<- c("conditional_non_spam","conditional_spam")
-probability_matrix[, 1] <- rowSums(conditional_non_spam)
+colnames(probability_matrix)<- c("conditional_not_spam","conditional_spam")
+probability_matrix[, 1] <- rowSums(conditional_not_spam)
 probability_matrix[, 2] <- rowSums(conditional_spam)
 probability_matrix[probability_matrix == '-Inf'] <- log10(.Machine$double.xmin) # Corrects buffer overflow
 # Calculate the spam & non-spam priors
 # Used https://www.theanalysisfactor.com/r-tutorial-count/ as a reference
 num_spam <- sum(testingData$y == 1)
-num_non_spam <- sum(testingData$y == 0)
+num_not_spam <- sum(testingData$y == 0)
 spam_prior <- num_spam / num_samples
-non_spam_prior <- num_non_spam / num_samples
+not_spam_prior <- num_not_spam / num_samples
 # Take the log of the spam & non-spam priors and add it to their corresponding log sums
+#P(X|Ci)*P(Ci)
 probability_matrix[, 1] <- probability_matrix[, 1] + log10(spam_prior)
-probability_matrix[, 2] <- probability_matrix[, 2] + log10(non_spam_prior)
+probability_matrix[, 2] <- probability_matrix[, 2] + log10(not_spam_prior)
 
 #---------------------------------result -------------------------------#
 
@@ -118,8 +118,8 @@ for (i in 1:num_samples)
   actual_class <- testingData[i, max_col] + 1
   confusion_matrix[actual_class, predicted_class] <- confusion_matrix[actual_class, predicted_class] + 1
 }
-con_matrix_row_names=c("Actual NS","Actual Spam")
-con_matrix_col_names=c("Predicted NS","Predicted Spam")
+con_matrix_row_names=c("Actual Not Spam","Actual Spam")
+con_matrix_col_names=c("Predicted Not Spam","Predicted Spam")
 dimnames(confusion_matrix)=list(con_matrix_row_names,con_matrix_col_names)
 print("Confusion Matrix")
 print(confusion_matrix)
