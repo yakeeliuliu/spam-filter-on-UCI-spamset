@@ -1,0 +1,35 @@
+install.packages("nnet")
+library(nnet)
+
+dataset <- read.csv("data.csv",header=FALSE,sep=";")
+names <- read.csv("names.csv",header=FALSE,sep=";")
+names(dataset) <- sapply((1:nrow(names)),function(i) toString(names[i,1]))
+resize <- sample(1:4601,1000)
+
+
+dataset <- dataset[resize,]
+trainingData <- dataset[1:500,]
+#ytrain <- dataset[1:500,58]
+testingData <- dataset[501:1000,]
+spam_count <- sum(testingData$y == 1)
+print("spam numner in testing data")
+spam_count
+print("non-spam numner in testing data")
+ham_count <- sum(testingData$y == 0)
+
+summary(dataset)
+
+target <- class.ind(trainingData$y)
+
+myspam<-nnet(x=trainingData[,-57],y=target, size=15, rang=0.1, decay=1e-2, maxit=2000,softmax = TRUE, ) 
+summary(myspam)
+testLabel <- predict(myspam, newdata=testingData[,-57], type="class")
+testLabel
+nn.table <- table(testingData$y,testLabel, dnn=c("actual","predicted"))
+nn.table
+plot(data.matrix(testingData$y), testLabel,xlab = "actual",ylab = "predicted")
+nn.table
+# Calucate accuracy #overall error percentage ~ 7.68%
+acuracy <- 100*(nn.table[1,1] + nn.table[2,2]) / sum(nn.table)
+print("accuracy is")
+acuracy
