@@ -1,8 +1,3 @@
-# install.packages('ggplot2')
-# install.packages('caret')
-# install.packages('e1071', dependencies=TRUE)
-#.....................................preprocess dataset.........................#
-#read dataset and put feature names to it
 dataset <- read.csv("data.csv",header=FALSE,sep=";")
 names <- read.csv("names.csv",header=FALSE,sep=";")
 names(dataset) <- sapply((1:nrow(names)),function(i) toString(names[i,1]))
@@ -40,9 +35,9 @@ for (q in 1:10)
   
   
   class <- knn(trainingData = trainingData,testingData = testingData, k=3)
-  confusion_matrix <- confuma(trainingData = trainingData,testingData = testingData,class = class)
-  rownames(confusion_matrix) <- c("actual_non_spam","actual_spam")
-  colnames(confusion_matrix) <- c("predicted_non_spam","predicted_spam")
+  confusion_matrix <- confuma(testingData = testingData,class = class)
+  rownames(confusion_matrix) <- c("actual_not_spam","actual_spam")
+  colnames(confusion_matrix) <- c("predicted_not_spam","predicted_spam")
   result_list[[q]] <- get_result(confusion_matrix = confusion_matrix)
   confusion_matrix_final <- rbind(confusion_matrix_final, confusion_matrix)
   print(confusion_matrix)
@@ -50,8 +45,8 @@ for (q in 1:10)
   #accuracy_list[[q]] <- accuracy1
 }
 # print("confusion matrix of each fold")
-colnames(confusion_matrix_final) <- c("predicted_non_span","predicted_spam")
-rownames(confusion_matrix_final) <- c(rep(c("actual_non_spam","actual_spam"),k_folds))
+colnames(confusion_matrix_final) <- c("predicted_not_span","predicted_spam")
+rownames(confusion_matrix_final) <- c(rep(c("actual_not_spam","actual_spam"),k_folds))
 print("10 folds of confusion matrix")
 print(confusion_matrix_final)
 
@@ -88,7 +83,8 @@ for(i in 1:dim(testingData)[1])#looping over testing data
   dist<-rowsum(t(diff2),rep(dim(diff2)[1],dim(diff2)[2]))#https://stat.ethz.ch/pipermail/r-help/2008-February/153151.html
   
   # Get objects for the observations sorted by the distances:
-  distSorted<-sort.int(dist,index.return=TRUE)$ix#范围在1~3680之间，返回记录的位置
+  distSorted<-sort.int(dist,index.return=TRUE)$ix#范围在1~3680之间，返回记录的位置,从小到大
+  #排序，也就是距离最近的在最前面
   
   # k nearest neighbours vote about class:
   vote<-0
@@ -104,22 +100,22 @@ return(class)
 }
 #---------------------------------confusion_matrix-------------------------------#
 
-# Takes a matrix of spam/non-spam probabilities of each data sample and the test dataset and 
+# Takes a matrix of spam/not-spam probabilities of each data sample and the test dataset and 
 # compares the prediction of each data sample in the probability_matrix with the target 
 # in the test data. It then creates a confusion matrix where:
-# confusion_matrix[1, 1] = Actual is non-spam and Prediction is non-spam (TN)
-# confusion_matrix[1, 2] = Actual is non-spam and Prediction is spam (FP)
-# confusion_matrix[2, 1] = Actual is spam and Prediction is non-spam (FN)
+# confusion_matrix[1, 1] = Actual is not-spam and Prediction is not-spam (TN)
+# confusion_matrix[1, 2] = Actual is not-spam and Prediction is spam (FP)
+# confusion_matrix[2, 1] = Actual is spam and Prediction is not-spam (FN)
 # confusion_matrix[2, 2] = Actual is spam and Prediction is spam (TP)
 # Returns confusion matrix to the calling routine.
-confuma <- function(trainingData,testingData,class){
+confuma <- function(testingData,class){
 confusion_matrix <- matrix(0, nrow = 2, ncol = 2)
 num_samples <- nrow(testingData)
 max_col <- ncol(testingData)
 
 for (i in 1:num_samples)
 {
-    if(class[i]== 0)#如果是non_spam则落在第一列，否则为spam落在第二列
+    if(class[i]== 0)#如果是not_spam则落在第一列，否则为spam落在第二列
     {predicted_class <- 1 
     }
     else{
@@ -159,55 +155,3 @@ return(three_amigos)
 
 
 
-#---------------------to be continued------------------------------------------#
-
-k_folds <- 10
-
-set.seed(1)       # Set a seed so that results are reproducible
-
-spambase <- read.csv(file = "spambase.csv", header = FALSE, sep = ",")
-spambase <- as.data.frame(spambase)
-names(spambase) <- c(1:58)
-
-# Randomize the rows in the dataset.
-# Used https://discuss.analyticsvidhya.com/t/how-to-shuffle-rows-in-a-data-frame-in-r/2202 as a reference.
-spambase <- spambase[sample(nrow(spambase)), ]
-
-# Perform K-fold cross-validation on dataset
-folds <- list()
-
-# Split the dataset into a list of data frames where each data frame consists of randomly selected rows from the
-# dataset.
-# Used https://stats.stackexchange.com/questions/149250/split-data-into-n-equal-groups as a reference
-folds <- split(spambase, sample(1:NUM_FOLDS, nrow(spambase), replace = T))
-accuracy_list <- list() # Stores the accuracy from each fold
-
-print("Confusion Matrices for each fold:")
-print("TN   |   FP")
-print("-----|-----")
-print("FN   |   TP")
-
-
-
-print("Accuracy (%):")
-print(accuracy)
-print("Average Accuracy (%):")
-print(mean(unlist(accuracy_list)))
-print("Max Accuracy (%):")
-print(max(unlist(accuracy_list)))
-print("Min Accuracy (%):")
-print(min(unlist(accuracy_list)))
-print("Standard Deviation:")
-print(sd(unlist(accuracy_list)))
-
-# trainingDataMatx = as.matrix(trainingData)
-# library(e1071)
-# nb_model <- naiveBayes(class ~ .,data = trainingDataMatx)
-# nb_model
-# pred <- predict(nb_model, as.matrix(testingData))
-
-library(ggplot2)
-library(caret)
-library(e1071)
-result1=confusionMatrix(table(class, testingData$y))
-result1
