@@ -1,0 +1,51 @@
+#original dataset plot
+library(caret); library(kernlab);
+set.seed(1)       # Set a seed so that results are reproducible
+#------------------------data split-----------------------------------------------#
+#read dataset and put feature names to it
+dataset <- read.csv("data.csv",header=FALSE,sep=";")
+names <- read.csv("names.csv",header=FALSE,sep=";")
+names(dataset) <- sapply((1:nrow(names)),function(i) toString(names[i,1]))
+
+
+typeColor <- ((dataset$y=="1")*1+1)
+typeColor <- adjustcolor(typeColor,alpha.f = 0.3)
+prComp <- prcomp(log10(dataset[,-58]+1))
+plot(prComp$x[,1],prComp$x[,2],col = typeColor,xlab="PC1",ylab="PC2")
+legend("bottomright", inset=0.01,c("Spam","Not Spam"), col=c("red","black"),pch = 1)
+
+
+#ENN balanced dataset plot
+install.packages('pca3d')
+#compare
+#------------------------data split-----------------------------------------------#
+#read dataset and put feature names to it
+dataset <- read.csv("data.csv",header=FALSE,sep=";")
+names <- read.csv("names.csv",header=FALSE,sep=";")
+names(dataset) <- sapply((1:nrow(names)),function(i) toString(names[i,1]))
+
+library('UBL')
+dataset2 <- ENNClassif( y~., dat=dataset, k = 3, dist = "Euclidean", Cl = c(1,0))
+dataset2 <- as.data.frame(dataset2[[1]])
+num_spam <- sum(dataset2$y == 1)
+num_not_spam <- sum(dataset2$y == 0)
+
+df1 <- data.frame(dataset)
+index1 <- as.integer(row.names(df1))
+df2 <- data.frame(dataset2)
+index2 <- as.integer(row.names(df2))
+ dataset_removed <- dataset[-index2, ]
+dataset_removed[,58] <- 2 
+dataset <- rbind(dataset2,dataset_removed)
+
+
+typeColor_spam <- c(rep(2,1372))
+typeColor_not_spam <- c(rep(1,2377))
+typeColor_removed <- c(rep(5,852))
+typeColor_spam <- adjustcolor(typeColor_spam,alpha.f = 0.6)
+typeColor_not_spam <- adjustcolor(typeColor_not_spam,alpha.f = 0.6)
+typeColor_removed <- adjustcolor(typeColor_removed,alpha.f = 0.8)
+typeColor <- c(typeColor_spam,typeColor_not_spam,typeColor_removed)
+prComp <- prcomp(log10(dataset[,-58]+1))
+plot(prComp$x[,1],prComp$x[,2],col = typeColor,xlab="PC1",ylab="PC2")
+legend("bottomright", inset=0.01,c("Spam", "Not Spam","Removed"), col=c("red", "black",5),pch = 1)
